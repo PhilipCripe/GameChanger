@@ -6,6 +6,15 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: false,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react":  ["react", "react-dom", "react-router-dom"],
+          "vendor-ethers": ["ethers"],
+        },
+      },
+    },
   },
   define: {
     global: "globalThis",
