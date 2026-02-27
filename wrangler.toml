@@ -1,31 +1,33 @@
+# Cloudflare Pages project configuration
+# Docs: https://developers.cloudflare.com/pages/configuration/wrangler-configuration/
+
 name = "gamechanger-market"
-compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
 
 [vars]
 CHAIN_ID     = "43113"
 NETWORK_NAME = "Avalanche Fuji Testnet"
 RPC_URL      = "https://api.avax-test.network/ext/bc/C/rpc"
-# Set ASSETS_BASE_URL if your R2 bucket has a public custom domain:
-# ASSETS_BASE_URL = "https://assets.gamechanger-market.pages.dev"
 
-# ─── Secrets (set via `wrangler secret put <NAME>`) ──────────────────────────
-# ADMIN_TOKEN      → admin panel server auth
-# CONTRACT_ADDRESS → deployed contract address
-# WDK_API_KEY      → Tether WDK API key
+# ─── Secrets — set in Cloudflare Pages dashboard → Settings → Variables ───────
+# ADMIN_TOKEN      (encrypted) — admin panel bearer token
+# CONTRACT_ADDRESS (encrypted) — deployed contract address
+# WDK_API_KEY      (encrypted) — Tether WDK API key
 
 # ─── KV namespace ─────────────────────────────────────────────────────────────
-# Create with: wrangler kv:namespace create "GCH_STORE"
-# Then uncomment and paste the id:
+# 1. Create: npx wrangler kv namespace create GCH_STORE
+# 2. Paste the returned id below, then uncomment:
 #
 # [[kv_namespaces]]
 # binding = "GCH_STORE"
 # id      = "YOUR_KV_NAMESPACE_ID_HERE"
 
-# ─── R2 bucket (for file uploads) ────────────────────────────────────────────
-# Create with: wrangler r2 bucket create gamechanger-assets
-# Then uncomment:
+# ─── R2 bucket (file uploads) ─────────────────────────────────────────────────
+# 1. Create: npx wrangler r2 bucket create gamechanger-assets
+# 2. Uncomment:
 #
 # [[r2_buckets]]
-# binding    = "ASSETS_BUCKET"
+# binding     = "ASSETS_BUCKET"
 # bucket_name = "gamechanger-assets"
