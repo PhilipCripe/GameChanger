@@ -3,19 +3,20 @@
   "version": "1.0.0",
   "description": "GameChanger SDK – multi-chain payments on Avalanche Fuji, hosted on Cloudflare Pages",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev":        "vite",
-    "build":      "vite build",
-    "preview":    "vite preview",
-    "deploy":     "npm run build && npx wrangler pages deploy dist --project-name gamechanger-market",
-    "cf:deploy":  "npx wrangler pages deploy dist --project-name gamechanger-market",
+    "dev":            "vite",
+    "build":          "vite build",
+    "preview":        "vite preview",
+    "pages:deploy":   "npx wrangler@4.69.0 pages deploy dist --project-name gamechanger-market",
+    "deploy":         "npm run build && npm run pages:deploy",
     "hardhat:deploy": "hardhat run scripts/deploy.js --network fuji",
     "hardhat:verify": "hardhat verify --network fuji"
   },
   "dependencies": {
-    "ethers":     "^6.9.0",
-    "react":      "^18.3.1",
-    "react-dom":  "^18.3.1",
+    "ethers":           "^6.9.0",
+    "react":            "^18.3.1",
+    "react-dom":        "^18.3.1",
     "react-router-dom": "^6.22.1"
   },
   "devDependencies": {
@@ -28,6 +29,6 @@
     "postcss":                          "^8.4.35",
     "tailwindcss":                      "^3.4.1",
     "vite":                             "^5.1.0",
-    "wrangler":                         "^4.69.0"
+    "wrangler":                         "4.69.0"
   }
 }
