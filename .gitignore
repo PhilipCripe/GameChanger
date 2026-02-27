@@ -1,0 +1,22 @@
+# Env / secrets
+.env
+.env.local
+
+# Build outputs
+dist/
+cache/
+artifacts/
+
+# Dependencies
+node_modules/
+
+# Editor
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Hardhat
+typechain-types/

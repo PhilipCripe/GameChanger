@@ -1,0 +1,31 @@
+name = "gamechanger-market"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+[vars]
+CHAIN_ID     = "43113"
+NETWORK_NAME = "Avalanche Fuji Testnet"
+RPC_URL      = "https://api.avax-test.network/ext/bc/C/rpc"
+# Set ASSETS_BASE_URL if your R2 bucket has a public custom domain:
+# ASSETS_BASE_URL = "https://assets.gamechanger-market.pages.dev"
+
+# ─── Secrets (set via `wrangler secret put <NAME>`) ──────────────────────────
+# ADMIN_TOKEN      → admin panel server auth
+# CONTRACT_ADDRESS → deployed contract address
+# WDK_API_KEY      → Tether WDK API key
+
+# ─── KV namespace ─────────────────────────────────────────────────────────────
+# Create with: wrangler kv:namespace create "GCH_STORE"
+# Then uncomment and paste the id:
+#
+# [[kv_namespaces]]
+# binding = "GCH_STORE"
+# id      = "YOUR_KV_NAMESPACE_ID_HERE"
+
+# ─── R2 bucket (for file uploads) ────────────────────────────────────────────
+# Create with: wrangler r2 bucket create gamechanger-assets
+# Then uncomment:
+#
+# [[r2_buckets]]
+# binding    = "ASSETS_BUCKET"
+# bucket_name = "gamechanger-assets"

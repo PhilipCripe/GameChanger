@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+  <!-- F-35 simplified silhouette -->
+  <g fill="none">
+    <!-- Main body -->
+    <polygon points="100,20 115,75 100,80 85,75" fill="#374151"/>
+    <!-- Delta wings -->
+    <polygon points="90,50 20,90 85,75 100,80" fill="#4b5563"/>
+    <polygon points="110,50 180,90 115,75 100,80" fill="#4b5563"/>
+    <!-- Tail -->
+    <polygon points="88,75 82,100 90,75" fill="#6b7280"/>
+    <polygon points="112,75 118,100 110,75" fill="#6b7280"/>
+    <!-- Canopy -->
+    <ellipse cx="100" cy="42" rx="7" ry="12" fill="#1d4ed8" opacity="0.7"/>
+    <!-- Engine glow -->
+    <ellipse cx="100" cy="80" rx="8" ry="4" fill="#E84142" opacity="0.8"/>
+    <ellipse cx="100" cy="82" rx="5" ry="3" fill="#fbbf24" opacity="0.9"/>
+    <!-- Nose -->
+    <polygon points="100,20 103,30 97,30" fill="#1f2937"/>
+  </g>
+  <!-- Label -->
+  <text x="100" y="112" text-anchor="middle" font-family="Inter,sans-serif"
+        font-size="10" font-weight="700" fill="#fbbf24">F-35 LIGHTNING II</text>
+</svg>

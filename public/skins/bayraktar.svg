@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+  <!-- Bayraktar TB2 simplified silhouette -->
+  <g fill="none" stroke="#6b7280" stroke-width="1">
+    <!-- Main fuselage -->
+    <ellipse cx="100" cy="60" rx="55" ry="10" fill="#374151"/>
+    <!-- Wings -->
+    <polygon points="100,55 40,45 40,52 100,62" fill="#4b5563"/>
+    <polygon points="100,55 160,45 160,52 100,62" fill="#4b5563"/>
+    <!-- Tail fins -->
+    <polygon points="45,58 30,40 35,58" fill="#6b7280"/>
+    <polygon points="45,62 30,80 35,62" fill="#6b7280"/>
+    <!-- Nose -->
+    <ellipse cx="152" cy="59" rx="8" ry="5" fill="#1f2937"/>
+    <!-- Sensor ball -->
+    <circle cx="148" cy="65" r="5" fill="#E84142"/>
+    <!-- Camera -->
+    <circle cx="148" cy="65" r="2" fill="#111"/>
+    <!-- Propeller -->
+    <rect x="38" y="57" width="6" height="4" rx="1" fill="#9ca3af"/>
+  </g>
+  <!-- Drone label -->
+  <text x="100" y="100" text-anchor="middle" font-family="Inter,sans-serif"
+        font-size="10" font-weight="700" fill="#E84142">BAYRAKTAR TB2</text>
+</svg>
