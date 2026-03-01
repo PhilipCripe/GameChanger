@@ -7,14 +7,17 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-CHAIN_ID     = "43113"
-NETWORK_NAME = "Avalanche Fuji Testnet"
-RPC_URL      = "https://api.avax-test.network/ext/bc/C/rpc"
+CHAIN_ID               = "43113"
+NETWORK_NAME           = "Avalanche Fuji Testnet"
+RPC_URL                = "https://api.avax-test.network/ext/bc/C/rpc"
+STRIPE_PUBLISHABLE_KEY = ""   # set in Cloudflare Pages dashboard when ready
 
-# ─── Secrets — set in Cloudflare Pages dashboard → Settings → Variables ───────
-# ADMIN_TOKEN      (encrypted) — admin panel bearer token
-# CONTRACT_ADDRESS (encrypted) — deployed contract address
-# WDK_API_KEY      (encrypted) — Tether WDK API key
+# ─── Secrets — set via `wrangler secret put` or Pages dashboard ───────────────
+# ADMIN_TOKEN          (encrypted) — admin panel bearer token
+# CONTRACT_ADDRESS     (encrypted) — deployed contract address
+# WDK_API_KEY          (encrypted) — Tether WDK API key
+# STRIPE_SECRET_KEY    (encrypted) — Stripe secret key (enables card payments)
+# STRIPE_WEBHOOK_SECRET (encrypted) — Stripe webhook signing secret
 
 # ─── KV namespace ─────────────────────────────────────────────────────────────
 # 1. Create: npx wrangler kv namespace create GCH_STORE

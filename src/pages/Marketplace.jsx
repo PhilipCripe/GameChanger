@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useWallet } from "../hooks/useWallet";
+import { useAuth }   from "../hooks/useAuth";
 import SkinCard from "../components/SkinCard";
 import { getProvider, fetchListings, CATEGORY_LABELS } from "../utils/contract";
 
 export default function Marketplace() {
   const { connected, connect, refreshBalance } = useWallet();
+  const { user, refreshUser } = useAuth();
   const [listings,    setListings]    = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [filterCat,   setFilterCat]   = useState(null); // null = all
@@ -46,10 +48,14 @@ export default function Marketplace() {
           Pay with USDT, USDC, ETH, SOL, BTC or AVAX — auto-converted via Tether WDK.
         </p>
         <div className="flex flex-wrap justify-center gap-3 mt-6">
-          {!connected
-            ? <button onClick={connect} className="btn-primary px-8 py-3">Connect Wallet to Shop</button>
-            : <Link to="/buy-gch" className="btn-primary px-8 py-3">Buy GCH Tokens</Link>
-          }
+          {!connected && !user ? (
+            <>
+              <button onClick={connect} className="btn-primary px-8 py-3">Connect Wallet</button>
+              <Link to="/signup" className="btn-secondary px-8 py-3">Sign Up Free</Link>
+            </>
+          ) : (
+            <Link to="/buy-gch" className="btn-primary px-8 py-3">Buy GCH Tokens</Link>
+          )}
           <Link to="/vote" className="btn-secondary px-8 py-3">Vote on Next DLC</Link>
         </div>
       </div>
@@ -116,7 +122,8 @@ export default function Marketplace() {
               key={listing.id}
               listing={listing}
               connected={connected}
-              onPurchased={() => { refreshBalance(); loadListings(); }}
+              user={user}
+              onPurchased={() => { refreshBalance(); refreshUser(); loadListings(); }}
             />
           ))}
           {/* Coming soon slot */}

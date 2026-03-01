@@ -1,9 +1,12 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./hooks/useAuth";
 import Navbar          from "./components/Navbar";
 import Marketplace     from "./pages/Marketplace";
 import BuyGCH          from "./pages/BuyGCH";
 import Vote            from "./pages/Vote";
 import ModderDashboard from "./pages/ModderDashboard";
+import Login           from "./pages/Login";
+import Signup          from "./pages/Signup";
 
 // Admin
 import AdminLayout    from "./pages/admin/AdminLayout";
@@ -17,27 +20,31 @@ import Uploads        from "./pages/admin/Uploads";
 // ─── Public layout ────────────────────────────────────────────────────────────
 function PublicLayout() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1">
-        <Routes>
-          <Route path="/"        element={<Marketplace />} />
-          <Route path="/buy-gch" element={<BuyGCH />} />
-          <Route path="/vote"    element={<Vote />} />
-          <Route path="/modder"  element={<ModderDashboard />} />
-          <Route path="*"        element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-      <footer className="border-t border-gray-800 py-6 text-center text-xs text-gray-500">
-        <p>
-          GameChanger Marketplace · Avalanche Fuji Testnet ·{" "}
-          <a href="https://testnet.snowtrace.io" target="_blank" rel="noreferrer" className="text-avax-red hover:underline">Snowtrace</a>
-          {" "}·{" "}
-          <a href="https://faucet.avax.network" target="_blank" rel="noreferrer" className="text-avax-red hover:underline">Get Test AVAX</a>
-        </p>
-        <p className="mt-1">Powered by Cloudflare Pages · $0 hosting forever</p>
-      </footer>
-    </div>
+    <AuthProvider>
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1">
+          <Routes>
+            <Route path="/"        element={<Marketplace />} />
+            <Route path="/buy-gch" element={<BuyGCH />} />
+            <Route path="/vote"    element={<Vote />} />
+            <Route path="/modder"  element={<ModderDashboard />} />
+            <Route path="/login"   element={<Login />} />
+            <Route path="/signup"  element={<Signup />} />
+            <Route path="*"        element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+        <footer className="border-t border-gray-800 py-6 text-center text-xs text-gray-500">
+          <p>
+            GameChanger Marketplace · Avalanche Fuji Testnet ·{" "}
+            <a href="https://testnet.snowtrace.io" target="_blank" rel="noreferrer" className="text-avax-red hover:underline">Snowtrace</a>
+            {" "}·{" "}
+            <a href="https://faucet.avax.network" target="_blank" rel="noreferrer" className="text-avax-red hover:underline">Get Test AVAX</a>
+          </p>
+          <p className="mt-1">Powered by Cloudflare Pages · $0 hosting forever</p>
+        </footer>
+      </div>
+    </AuthProvider>
   );
 }
 

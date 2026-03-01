@@ -1,11 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { useWallet } from "../hooks/useWallet";
 import { useAdmin }  from "../hooks/useAdmin";
+import { useAuth }   from "../hooks/useAuth";
 import { formatGCH } from "../utils/contract";
 
 export default function Navbar() {
-  const { address, gchBalance, connected, loading, connect, wrongNetwork } = useWallet();
+  const { address, gchBalance, connected, loading: walletLoading, connect, wrongNetwork } = useWallet();
   const { isOwner } = useAdmin();
+  const { user, logout } = useAuth();
   const loc = useLocation();
 
   const nav = [
@@ -18,6 +20,14 @@ export default function Navbar() {
   function short(addr) {
     return addr.slice(0, 6) + "…" + addr.slice(-4);
   }
+
+  // Initials avatar for email users
+  function initials(email) {
+    return email ? email[0].toUpperCase() : "?";
+  }
+
+  const hasSession = !!user;
+  const hasWallet  = connected;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-800 bg-gray-950/90 backdrop-blur">
@@ -43,7 +53,6 @@ export default function Navbar() {
               {n.label}
             </Link>
           ))}
-          {/* Admin link – only visible to owner */}
           {isOwner && (
             <Link
               to="/admin"
@@ -58,26 +67,78 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Wallet */}
-        <div className="flex items-center gap-3">
-          {connected && (
-            <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 text-sm font-semibold text-brand-500">
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z"/>
-              </svg>
-              {formatGCH(gchBalance)}
-            </span>
+        {/* Right side: auth + wallet */}
+        <div className="flex items-center gap-2">
+          {/* Case 1: email session — show GCH balance + avatar + logout */}
+          {hasSession && (
+            <>
+              <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 text-sm font-semibold text-brand-500">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z"/>
+                </svg>
+                {(user.gchBalance || 0).toLocaleString()} GCH
+              </span>
+              <span
+                className="w-8 h-8 rounded-full bg-avax-red flex items-center justify-center text-white text-xs font-black cursor-default"
+                title={user.email}
+              >
+                {initials(user.email)}
+              </span>
+              <button
+                onClick={logout}
+                className="text-xs px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
+              >
+                Log Out
+              </button>
+            </>
           )}
-          {wrongNetwork && (
-            <span className="badge bg-red-900/50 text-red-400">Wrong Network</span>
+
+          {/* Case 2: wallet connected — show wallet GCH balance + address */}
+          {hasWallet && (
+            <>
+              {!hasSession && (
+                <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-800 text-sm font-semibold text-brand-500">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z"/>
+                  </svg>
+                  {formatGCH(gchBalance)}
+                </span>
+              )}
+              {wrongNetwork && (
+                <span className="badge bg-red-900/50 text-red-400 text-xs">Wrong Network</span>
+              )}
+              <button
+                onClick={connect}
+                disabled={walletLoading}
+                className="btn-primary text-xs"
+              >
+                {walletLoading ? "Connecting…" : short(address)}
+              </button>
+            </>
           )}
-          <button
-            onClick={connect}
-            disabled={loading}
-            className="btn-primary text-xs"
-          >
-            {loading ? "Connecting…" : connected ? short(address) : "Connect Wallet"}
-          </button>
+
+          {/* Case 3: no session AND no wallet — show Log In + Sign Up */}
+          {!hasSession && !hasWallet && (
+            <>
+              <Link to="/login"  className="text-xs px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors">
+                Log In
+              </Link>
+              <Link to="/signup" className="btn-primary text-xs">
+                Sign Up
+              </Link>
+            </>
+          )}
+
+          {/* Case 4: session but no wallet — also show connect wallet */}
+          {hasSession && !hasWallet && (
+            <button
+              onClick={connect}
+              disabled={walletLoading}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
+            >
+              {walletLoading ? "…" : "Connect Wallet"}
+            </button>
+          )}
         </div>
       </div>
     </nav>

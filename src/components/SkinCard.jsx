@@ -1,30 +1,54 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import { getContract, getSigner, CATEGORY_LABELS } from "../utils/contract";
 
-export default function SkinCard({ listing, connected, onPurchased }) {
+export default function SkinCard({ listing, connected, user, onPurchased }) {
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [txHash,  setTxHash]  = useState(null);
   const [code,    setCode]    = useState(null);
   const [error,   setError]   = useState(null);
 
+  const isLoggedIn = connected || !!user;
+
   async function handleBuy() {
-    if (!connected) { setError("Connect wallet first"); return; }
+    if (!isLoggedIn) { setError("Log in or connect wallet to purchase"); return; }
     setLoading(true);
     setError(null);
     setCode(null);
+
     try {
+      if (!connected && user) {
+        // Email-user path — off-chain KV purchase via CF Function
+        const token = getToken();
+        const res = await fetch("/api/shop/purchase", {
+          method:  "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization:  `Bearer ${token}`,
+          },
+          body: JSON.stringify({ listingId: listing.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setError(data.error || "Purchase failed"); return; }
+        setCode(data.code);
+        setTxHash("KV-PURCHASE");
+        onPurchased?.();
+        return;
+      }
+
+      // Wallet path — on-chain
       const signer   = await getSigner();
       const contract = getContract(signer);
       const tx       = await contract.purchaseItem(listing.id);
       const receipt  = await tx.wait();
       setTxHash(receipt.hash);
 
-      // Extract redeem code from ItemPurchased event
       const event = receipt.logs
         .map((l) => { try { return contract.interface.parseLog(l); } catch { return null; } })
         .find((l) => l?.name === "ItemPurchased");
       if (event) {
-        // Show first 18 chars of the bytes32 hash as a display code
         setCode(event.args.redeemCode.slice(0, 18).toUpperCase());
       }
       onPurchased?.();
@@ -83,21 +107,27 @@ export default function SkinCard({ listing, connected, onPurchased }) {
       {/* Price + buy */}
       <div className="mt-auto flex items-center justify-between gap-3">
         <span className="font-black text-lg text-avax-red">{listing.priceGCH} GCH</span>
-        <button
-          onClick={handleBuy}
-          disabled={loading || soldOut || !connected}
-          className="btn-primary flex-1"
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-              </svg>
-              Buying…
-            </span>
-          ) : soldOut ? "Sold Out" : "Buy Now"}
-        </button>
+        {isLoggedIn ? (
+          <button
+            onClick={handleBuy}
+            disabled={loading || soldOut}
+            className="btn-primary flex-1"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+                Buying…
+              </span>
+            ) : soldOut ? "Sold Out" : "Buy Now"}
+          </button>
+        ) : (
+          <Link to="/login" className="btn-secondary flex-1 text-center text-sm">
+            Log In to Buy
+          </Link>
+        )}
       </div>
 
       {/* Feedback */}

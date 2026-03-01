@@ -1,7 +1,6 @@
 import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import { useState } from "react";
 import { useAdmin } from "../../hooks/useAdmin";
-import { useWallet } from "../../hooks/useWallet";
 
 // ─── Icon primitives ─────────────────────────────────────────────────────────
 const Icon = ({ d, className = "w-5 h-5" }) => (
@@ -30,49 +29,75 @@ const NAV = [
   { to: "uploads",   label: "Uploads",    icon: "uploads"   },
 ];
 
-// ─── States before admin panel is shown ──────────────────────────────────────
+// ─── Login form shown before admin panel ─────────────────────────────────────
 function Gate({ children }) {
-  const { isOwner, ownerLoading, connected } = useAdmin();
-  const { connect, loading } = useWallet();
+  const { isAuthenticated, login, logout, loginError, loginLoading } = useAdmin();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-  if (ownerLoading) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-400">
-          <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-          </svg>
-          Verifying ownership…
-        </div>
-      </div>
-    );
+  async function handleSubmit(e) {
+    e.preventDefault();
+    await login(username, password);
   }
 
-  if (!connected) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="card text-center max-w-sm w-full mx-4">
-          <Icon d={Icons.lock} className="w-10 h-10 mx-auto mb-4 text-avax-red" />
-          <h2 className="font-black text-xl mb-2">Admin Access</h2>
-          <p className="text-gray-400 text-sm mb-6">Connect the contract owner wallet to continue.</p>
-          <button onClick={connect} disabled={loading} className="btn-primary w-full">
-            {loading ? "Connecting…" : "Connect Wallet"}
-          </button>
-          <Link to="/" className="block mt-4 text-xs text-gray-500 hover:text-gray-300">← Back to Marketplace</Link>
-        </div>
-      </div>
-    );
-  }
+        <div className="card max-w-sm w-full mx-4">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="w-9 h-9 rounded-lg bg-avax-red flex items-center justify-center text-white font-black text-sm shrink-0">G</span>
+            <div>
+              <h2 className="font-black text-lg leading-none">Admin Panel</h2>
+              <p className="text-xs text-gray-500 mt-0.5">GameChanger Marketplace</p>
+            </div>
+          </div>
 
-  if (!isOwner) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="card text-center max-w-sm w-full mx-4">
-          <Icon d={Icons.lock} className="w-10 h-10 mx-auto mb-4 text-red-400" />
-          <h2 className="font-black text-xl mb-2 text-red-400">Not Authorised</h2>
-          <p className="text-gray-400 text-sm mb-6">This wallet is not the contract owner.</p>
-          <Link to="/" className="btn-secondary">← Back to Marketplace</Link>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                Username
+              </label>
+              <input
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-avax-red"
+                placeholder="admin"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                Password
+              </label>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-avax-red"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {loginError && (
+              <p className="text-xs text-red-400 bg-red-900/20 px-3 py-2 rounded-lg">{loginError}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="btn-primary w-full py-2.5"
+            >
+              {loginLoading ? "Signing in…" : "Sign In"}
+            </button>
+          </form>
+
+          <Link to="/" className="block mt-4 text-center text-xs text-gray-500 hover:text-gray-300">
+            ← Back to Marketplace
+          </Link>
         </div>
       </div>
     );
@@ -81,8 +106,11 @@ function Gate({ children }) {
   return children;
 }
 
+const Icons_logout = "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1";
+
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 function Sidebar({ collapsed, setCollapsed }) {
+  const { logout } = useAdmin();
   const loc = useLocation();
   const seg = loc.pathname.split("/").pop();
 
@@ -132,6 +160,14 @@ function Sidebar({ collapsed, setCollapsed }) {
         >
           <Icon d={Icons.menu} className="w-4 h-4 shrink-0" />
           {!collapsed && "Collapse"}
+        </button>
+        <button
+          onClick={logout}
+          title={collapsed ? "Sign Out" : undefined}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:text-red-400 hover:bg-red-900/20 transition-colors"
+        >
+          <Icon d={Icons_logout} className="w-4 h-4 shrink-0" />
+          {!collapsed && "Sign Out"}
         </button>
       </div>
     </aside>
