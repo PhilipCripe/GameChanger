@@ -11,6 +11,7 @@ CHAIN_ID               = "43113"
 NETWORK_NAME           = "Avalanche Fuji Testnet"
 RPC_URL                = "https://api.avax-test.network/ext/bc/C/rpc"
 STRIPE_PUBLISHABLE_KEY = ""   # set in Cloudflare Pages dashboard when ready
+ADMIN_WALLET           = "0xAB0998301e631c5384ea17D2f3C164556bdfe30F"
 
 # ─── Secrets — set via `wrangler secret put` or Pages dashboard ───────────────
 # ADMIN_TOKEN          (encrypted) — admin panel bearer token

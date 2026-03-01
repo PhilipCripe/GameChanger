@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getContract, getProvider } from "../utils/contract";
+import { getContract, getProvider, getSigner } from "../utils/contract";
 import { useWallet } from "./useWallet";
 
 const TOKEN_KEY = "gc_admin_token";
@@ -51,6 +51,36 @@ export function useAdmin() {
     }
   }, []);
 
+  const walletLogin = useCallback(async () => {
+    setLoginLoading(true);
+    setLoginError(null);
+    try {
+      const signer  = await getSigner();
+      const address = await signer.getAddress();
+      const message = "Sign in to GameChanger Admin Panel";
+      const signature = await signer.signMessage(message);
+
+      const res  = await fetch("/api/admin/wallet-login", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ address, signature, message }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLoginError(data.error || "Wallet authentication failed");
+        return false;
+      }
+      localStorage.setItem(TOKEN_KEY, data.token);
+      setTokenState(data.token);
+      return true;
+    } catch (e) {
+      setLoginError(e.message || "Wallet sign-in failed");
+      return false;
+    } finally {
+      setLoginLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setTokenState("");
@@ -72,6 +102,7 @@ export function useAdmin() {
     connected,
     token,
     login,
+    walletLogin,
     logout,
     loginError,
     loginLoading,

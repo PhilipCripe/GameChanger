@@ -31,7 +31,7 @@ const NAV = [
 
 // ─── Login form shown before admin panel ─────────────────────────────────────
 function Gate({ children }) {
-  const { isAuthenticated, login, logout, loginError, loginLoading } = useAdmin();
+  const { isAuthenticated, login, walletLogin, loginError, loginLoading } = useAdmin();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
@@ -52,6 +52,22 @@ function Gate({ children }) {
             </div>
           </div>
 
+          {/* Wallet sign-in */}
+          <button
+            onClick={walletLogin}
+            disabled={loginLoading}
+            className="btn-primary w-full py-2.5 mb-4"
+          >
+            {loginLoading ? "Waiting for signature…" : "Sign In with Wallet"}
+          </button>
+
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px bg-gray-800" />
+            <span className="text-xs text-gray-600">or</span>
+            <div className="flex-1 h-px bg-gray-800" />
+          </div>
+
+          {/* Username / password fallback */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
@@ -89,9 +105,9 @@ function Gate({ children }) {
             <button
               type="submit"
               disabled={loginLoading}
-              className="btn-primary w-full py-2.5"
+              className="btn-secondary w-full py-2.5"
             >
-              {loginLoading ? "Signing in…" : "Sign In"}
+              {loginLoading ? "Signing in…" : "Sign In with Password"}
             </button>
           </form>
 
