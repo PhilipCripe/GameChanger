@@ -1,17 +1,23 @@
 import { useState, useEffect } from "react";
 import { useAdmin } from "../../hooks/useAdmin";
-import { getProvider } from "../../utils/contract";
+import { getProvider, getContract, getSigner } from "../../utils/contract";
 import { ethers } from "ethers";
 
 export default function Support() {
   const { getToken } = useAdmin();
 
-  const [tickets,      setTickets]      = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [gasAddress,   setGasAddress]   = useState(null);
-  const [gasBalance,   setGasBalance]   = useState(null);
-  const [resolving,    setResolving]    = useState(null);
-  const [filter,       setFilter]       = useState("open"); // "open" | "all"
+  const [tickets,       setTickets]       = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [gasAddress,    setGasAddress]    = useState(null);
+  const [gasBalance,    setGasBalance]    = useState(null);
+  const [resolving,     setResolving]     = useState(null);
+  const [filter,        setFilter]        = useState("open"); // "open" | "all"
+
+  // Change minter form
+  const [currentMinter, setCurrentMinter] = useState(null);
+  const [newMinter,     setNewMinter]     = useState("");
+  const [minterSaving,  setMinterSaving]  = useState(false);
+  const [minterMsg,     setMinterMsg]     = useState(null);
 
   async function load() {
     setLoading(true);
@@ -27,20 +33,49 @@ export default function Support() {
   async function loadGasWallet() {
     try {
       const provider = getProvider();
-      // The gas wallet address is returned in any ticket that has one
-      // We can also fetch it from the first ticket that has gasWalletAddress
-      const res  = await fetch("/api/admin/support", {
-        headers: { Authorization: `Bearer ${getToken()}` },
+      const contract = getContract(provider);
+
+      // Read the authorised minter address from the contract
+      const minterAddr = await contract.minter();
+      // If minter is zero address, the owner wallet acts as the gas wallet
+      const ownerAddr  = await contract.owner();
+      const active     = (minterAddr && minterAddr !== ethers.ZeroAddress)
+        ? minterAddr
+        : ownerAddr;
+
+      setCurrentMinter(minterAddr === ethers.ZeroAddress ? null : minterAddr);
+      setGasAddress(active);
+      const bal = await provider.getBalance(active);
+      setGasBalance(ethers.formatEther(bal));
+    } catch { /* contract not deployed */ }
+  }
+
+  async function handleSetMinter(e) {
+    e.preventDefault();
+    if (!ethers.isAddress(newMinter)) {
+      setMinterMsg({ ok: false, text: "Invalid address." });
+      return;
+    }
+    setMinterSaving(true);
+    setMinterMsg(null);
+    try {
+      const signer   = await getSigner();
+      const contract = getContract(signer);
+      const tx       = await contract.setMinter(newMinter);
+      await tx.wait();
+      setCurrentMinter(newMinter);
+      setGasAddress(newMinter);
+      setNewMinter("");
+      setMinterMsg({
+        ok:   true,
+        text: `Minter updated to ${newMinter.slice(0, 8)}… — also update GAS_WALLET_PRIVATE_KEY in Cloudflare Pages secrets.`,
       });
-      if (!res.ok) return;
-      const all = await res.json();
-      const addr = all.find((t) => t.gasWalletAddress)?.gasWalletAddress;
-      if (addr) {
-        setGasAddress(addr);
-        const bal = await provider.getBalance(addr);
-        setGasBalance(ethers.formatEther(bal));
-      }
-    } catch { /* contract not deployed or no tickets yet */ }
+      await loadGasWallet();
+    } catch (err) {
+      setMinterMsg({ ok: false, text: err.reason || err.message || "Transaction failed" });
+    } finally {
+      setMinterSaving(false);
+    }
   }
 
   useEffect(() => { load(); loadGasWallet(); }, []);
@@ -143,6 +178,50 @@ export default function Support() {
               </p>
             </div>
           )}
+        </div>
+
+        {/* Change gas wallet */}
+        <div className="card mb-6">
+          <h2 className="font-bold mb-1">Change Gas Wallet</h2>
+          <p className="text-xs text-gray-500 mb-4">
+            The gas wallet pays AVAX fees when minting NFTs for email users.
+            Currently: <span className="font-mono text-gray-300">
+              {currentMinter
+                ? `${currentMinter.slice(0, 8)}…${currentMinter.slice(-6)} (explicit minter)`
+                : `${gasAddress ? gasAddress.slice(0, 8) + "…" + gasAddress.slice(-6) : "—"} (owner wallet)`}
+            </span>
+          </p>
+
+          {minterMsg && (
+            <div className={`mb-4 p-3 rounded-xl text-xs ${minterMsg.ok ? "bg-green-900/20 text-green-400" : "bg-red-900/20 text-red-400"}`}>
+              {minterMsg.text}
+            </div>
+          )}
+
+          <form onSubmit={handleSetMinter} className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-400 font-semibold block mb-1.5">New Gas Wallet Address</label>
+              <input
+                value={newMinter}
+                onChange={(e) => setNewMinter(e.target.value)}
+                className="input font-mono text-sm"
+                placeholder="0x…"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={minterSaving || !ethers.isAddress(newMinter)}
+              className="btn-primary text-sm"
+            >
+              {minterSaving ? "Saving…" : "Update Gas Wallet"}
+            </button>
+          </form>
+
+          <p className="text-xs text-yellow-500/70 mt-4 bg-yellow-900/10 border border-yellow-700/20 rounded-lg px-3 py-2">
+            After changing the address on-chain, also update the{" "}
+            <code className="bg-gray-800 px-1 rounded">GAS_WALLET_PRIVATE_KEY</code> secret in
+            Cloudflare Pages to the new wallet's private key, then redeploy.
+          </p>
         </div>
 
         {/* Tickets */}

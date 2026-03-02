@@ -60,6 +60,8 @@ export const CONTRACT_ABI = [
 
   // ── Admin ──
   "function owner() view returns (address)",
+  "function minter() view returns (address)",
+  "function setMinter(address _minter)",
   "function setGchPerAvax(uint256 newRate)",
   "function setMarketplaceWallet(address _wallet)",
   "function pause()",
