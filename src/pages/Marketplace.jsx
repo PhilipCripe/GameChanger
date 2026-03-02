@@ -3,14 +3,15 @@ import { Link } from "react-router-dom";
 import { useWallet } from "../hooks/useWallet";
 import { useAuth }   from "../hooks/useAuth";
 import SkinCard from "../components/SkinCard";
-import { getProvider, fetchListings, CATEGORY_LABELS } from "../utils/contract";
+import { getProvider, getContract, fetchListings, CATEGORY_LABELS } from "../utils/contract";
 
 export default function Marketplace() {
   const { connected, connect, refreshBalance } = useWallet();
   const { user, refreshUser } = useAuth();
   const [listings,    setListings]    = useState([]);
   const [loading,     setLoading]     = useState(true);
-  const [filterCat,   setFilterCat]   = useState(null); // null = all
+  const [filterCat,   setFilterCat]   = useState(null);
+  const [liveStats,   setLiveStats]   = useState({ activePolls: null, modderPayout: null });
 
   async function loadListings() {
     setLoading(true);
@@ -25,7 +26,28 @@ export default function Marketplace() {
     }
   }
 
-  useEffect(() => { loadListings(); }, []);
+  async function loadStats() {
+    try {
+      const provider = getProvider();
+      const contract = getContract(provider);
+
+      // Count active polls
+      const pollCount = Number(await contract.pollCount());
+      let activePolls = 0;
+      for (let i = 1; i <= pollCount; i++) {
+        const meta = await contract.getPollMeta(i);
+        if (meta.active) activePolls++;
+      }
+
+      // Sum modder payouts from ModderSharePaid events
+      const events = await contract.queryFilter(contract.filters.ModderSharePaid(), 0);
+      const modderPayout = events.reduce((sum, e) => sum + Number(e.args.gchAmount), 0);
+
+      setLiveStats({ activePolls, modderPayout });
+    } catch { /* contract not deployed yet — silently skip */ }
+  }
+
+  useEffect(() => { loadListings(); loadStats(); }, []);
 
   const categories = [...new Set(listings.map((l) => l.category))];
   const displayed  = filterCat === null
@@ -63,10 +85,10 @@ export default function Marketplace() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {[
-          { label: "Items Listed",    value: listings.length || "…" },
-          { label: "GCH Rate",        value: "1000 / AVAX" },
-          { label: "Active Polls",    value: "1" },
-          { label: "Modder Payouts",  value: "$247 paid" },
+          { label: "Items Listed",   value: loading ? "…" : listings.length },
+          { label: "GCH Rate",       value: "1 GCH = $1 USD" },
+          { label: "Active Polls",   value: liveStats.activePolls ?? "…" },
+          { label: "Modder Payouts", value: liveStats.modderPayout !== null ? `$${liveStats.modderPayout.toLocaleString()}` : "…" },
         ].map((s) => (
           <div key={s.label} className="card text-center">
             <p className="text-2xl font-black">{s.value}</p>
@@ -141,7 +163,7 @@ export default function Marketplace() {
         <div className="grid md:grid-cols-4 gap-4">
           {[
             { n: "1", title: "Get Test AVAX",   desc: "Grab free AVAX from faucet.avax.network" },
-            { n: "2", title: "Buy GCH Tokens",  desc: "1 AVAX = 1000 GCH on Fuji testnet" },
+            { n: "2", title: "Buy GCH Tokens",  desc: "1 GCH = $1 USD — pay with AVAX, card, or crypto" },
             { n: "3", title: "Purchase Item",   desc: "Spend GCH, receive on-chain redeem code" },
             { n: "4", title: "Redeem In-Game",  desc: "Enter code in game to unlock your item" },
           ].map((s) => (
