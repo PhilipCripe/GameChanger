@@ -21,12 +21,9 @@ ADMIN_WALLET           = "0xAB0998301e631c5384ea17D2f3C164556bdfe30F"
 # STRIPE_WEBHOOK_SECRET (encrypted) — Stripe webhook signing secret
 
 # ─── KV namespace ─────────────────────────────────────────────────────────────
-# 1. Create: npx wrangler kv namespace create GCH_STORE
-# 2. Paste the returned id below, then uncomment:
-#
-# [[kv_namespaces]]
-# binding = "GCH_STORE"
-# id      = "YOUR_KV_NAMESPACE_ID_HERE"
+[[kv_namespaces]]
+binding = "GCH_STORE"
+id      = "4ac73de3a1534d64a21337f78e692355"
 
 # ─── R2 bucket (file uploads) ─────────────────────────────────────────────────
 # 1. Create: npx wrangler r2 bucket create gamechanger-assets
