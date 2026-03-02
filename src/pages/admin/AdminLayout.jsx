@@ -16,6 +16,7 @@ const Icons = {
   users:     "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
   gameapi:   "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1",
   uploads:   "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12",
+  support:   "M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z",
   back:      "M10 19l-7-7m0 0l7-7m-7 7h18",
   menu:      "M4 6h16M4 12h16M4 18h16",
   lock:      "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
@@ -29,6 +30,7 @@ const NAV = [
   { to: "users",     label: "Users",      icon: "users"     },
   { to: "game-api",  label: "Game API",   icon: "gameapi"   },
   { to: "uploads",   label: "Uploads",    icon: "uploads"   },
+  { to: "support",   label: "Support",    icon: "support"   },
 ];
 
 // ─── Login form shown before admin panel ─────────────────────────────────────

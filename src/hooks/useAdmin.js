@@ -95,12 +95,15 @@ export function useAdmin() {
     "Authorization": `Bearer ${token}`,
   };
 
+  const getToken = useCallback(() => localStorage.getItem(TOKEN_KEY) || token, [token]);
+
   return {
     isOwner,
     isAuthenticated,
     ownerAddress,
     connected,
     token,
+    getToken,
     login,
     walletLogin,
     logout,

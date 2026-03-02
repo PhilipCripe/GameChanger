@@ -21,6 +21,8 @@ contract GameChangerExchange is ERC1155, Ownable, ReentrancyGuard, Pausable {
     // ─── GCH Token Ledger ────────────────────────────────────────────────────
 
     address public marketplaceWallet;
+    /// @notice Address authorised to call mintItemTo (the platform gas wallet).
+    address public minter;
 
     /// @notice How many GCH tokens 1 full AVAX (1e18 wei) buys. Owner-updatable.
     uint256 public gchPerAvax = 1000;
@@ -94,6 +96,7 @@ contract GameChangerExchange is ERC1155, Ownable, ReentrancyGuard, Pausable {
 
     event ModderCredited(address indexed modder, uint256 gchAmount, string reason);
     event ModderSharePaid(address indexed modder, uint256 indexed listingId, uint256 gchAmount);
+    event MinterUpdated(address indexed oldMinter, address indexed newMinter);
 
     // ─── Constructor ─────────────────────────────────────────────────────────
 
@@ -269,6 +272,42 @@ contract GameChangerExchange is ERC1155, Ownable, ReentrancyGuard, Pausable {
         require(!codeUsed[code],          "Already redeemed");
         codeUsed[code] = true;
         emit CodeRedeemed(msg.sender, code, codeToListing[code]);
+    }
+
+    /**
+     * @notice Mint an NFT directly to a recipient for an off-chain USD purchase.
+     *         The GCH payment was already handled in KV; this just mints the NFT
+     *         and records the redeem code.  Gas is paid by the platform gas wallet.
+     *         Only the contract owner or the authorised minter address may call this.
+     * @param recipient  Wallet that receives the NFT.
+     * @param listingId  Listing to mint.
+     */
+    function mintItemTo(address recipient, uint256 listingId)
+        external
+        nonReentrant
+        whenNotPaused
+        returns (bytes32 redeemCode_)
+    {
+        require(
+            msg.sender == owner() || (minter != address(0) && msg.sender == minter),
+            "Not authorised"
+        );
+        require(recipient != address(0), "Invalid recipient");
+
+        Listing storage l = listings[listingId];
+        require(l.active,                                           "Listing inactive");
+        require(l.expiresAt == 0 || block.timestamp < l.expiresAt, "Listing expired");
+        require(l.supply == 0 || l.sold < l.supply,                "Sold out");
+
+        l.sold += 1;
+        _mint(recipient, listingId, 1, "");
+
+        redeemCode_ = keccak256(
+            abi.encodePacked(recipient, listingId, l.sku, block.timestamp, block.prevrandao)
+        );
+        codeToListing[redeemCode_] = listingId;
+
+        emit ItemPurchased(recipient, listingId, redeemCode_);
     }
 
     // =========================================================================
@@ -453,6 +492,12 @@ contract GameChangerExchange is ERC1155, Ownable, ReentrancyGuard, Pausable {
     function setMarketplaceWallet(address _wallet) external onlyOwner {
         require(_wallet != address(0), "Invalid wallet");
         marketplaceWallet = _wallet;
+    }
+
+    /// @notice Authorise a gas-wallet address to call mintItemTo on behalf of the platform.
+    function setMinter(address _minter) external onlyOwner {
+        emit MinterUpdated(minter, _minter);
+        minter = _minter;
     }
 
     /// @notice Update the ERC-1155 metadata base URI (e.g. point to new IPFS CID).

@@ -12,15 +12,18 @@ NETWORK_NAME            = "Avalanche Fuji Testnet"
 RPC_URL                 = "https://api.avax-test.network/ext/bc/C/rpc"
 STRIPE_PUBLISHABLE_KEY  = ""   # set in Cloudflare Pages dashboard when ready
 ADMIN_WALLET            = "0xAB0998301e631c5384ea17D2f3C164556bdfe30F"
-VITE_CONTRACT_ADDRESS   = "0x256E962cFA28637BE7b47379DB494128371989dB"
+VITE_CONTRACT_ADDRESS   = "0x45915C0a473fA1A21B29CE57C3BAC78258b50BFD"
 VITE_CHAIN_ID           = "43113"
 
-# ─── Secrets — set via `wrangler secret put` or Pages dashboard ───────────────
-# ADMIN_TOKEN          (encrypted) — admin panel bearer token
-# CONTRACT_ADDRESS     (encrypted) — deployed contract address
-# WDK_API_KEY          (encrypted) — Tether WDK API key
-# STRIPE_SECRET_KEY    (encrypted) — Stripe secret key (enables card payments)
+# ─── Secrets — set via `wrangler pages secret put` or Pages dashboard ─────────
+# ADMIN_TOKEN           (encrypted) — admin panel bearer token
+# CONTRACT_ADDRESS      (encrypted) — deployed contract address
+# WDK_API_KEY           (encrypted) — Tether WDK API key
+# STRIPE_SECRET_KEY     (encrypted) — Stripe secret key (enables card payments)
 # STRIPE_WEBHOOK_SECRET (encrypted) — Stripe webhook signing secret
+# GAS_WALLET_PRIVATE_KEY (encrypted) — private key of the platform gas wallet
+#                        that pays AVAX gas fees for minting NFTs to email users.
+#                        Keep this wallet topped up with AVAX; replenish via Admin → Support.
 
 # ─── KV namespace ─────────────────────────────────────────────────────────────
 [[kv_namespaces]]

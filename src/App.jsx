@@ -18,6 +18,7 @@ import Modders        from "./pages/admin/Modders";
 import Users          from "./pages/admin/Users";
 import GameAPI        from "./pages/admin/GameAPI";
 import Uploads        from "./pages/admin/Uploads";
+import Support        from "./pages/admin/Support";
 
 // ─── Public layout ────────────────────────────────────────────────────────────
 function PublicLayout() {
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="users"           element={<Users />} />
         <Route path="game-api"        element={<GameAPI />} />
         <Route path="uploads"         element={<Uploads />} />
+        <Route path="support"         element={<Support />} />
       </Route>
 
       {/* Public site */}
