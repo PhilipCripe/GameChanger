@@ -4,18 +4,21 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 /**
  * @title GameChangerExchange
- * @notice Scalable marketplace on Avalanche Fuji.
- *         - Dynamic item listings: add any skin/DLC/bundle without redeploying.
- *         - Dynamic polls: create any vote with N options without redeploying.
- *         - Per-listing revenue split between platform and credited modder.
- *         - GCH token ledger: 1 AVAX = GCH_PER_AVAX (updatable by owner).
+ * @notice GCH token marketplace with on-chain NFT ownership.
+ *         Purchasing any listing (country unlock, DLC, skin, bundle)
+ *         mints an ERC-1155 token to the buyer's wallet.  Token ID == listing ID,
+ *         so any wallet or explorer can verify ownership with balanceOf(player, listingId).
+ *
+ *         Listings are created dynamically by the owner — no redeployment needed to
+ *         add new countries, seasons, or content packs.
  */
-contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
+contract GameChangerExchange is ERC1155, Ownable, ReentrancyGuard, Pausable {
 
-    // ─── GCH Exchange ────────────────────────────────────────────────────────
+    // ─── GCH Token Ledger ────────────────────────────────────────────────────
 
     address public marketplaceWallet;
 
@@ -28,27 +31,27 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
 
     // ─── Listing Registry ────────────────────────────────────────────────────
 
-    enum Category { SKIN, DLC, BUNDLE, COSMETIC, OTHER }
+    enum Category { SKIN, DLC, BUNDLE, COSMETIC, COUNTRY, OTHER }
 
     struct Listing {
         uint256  id;
-        string   name;         // e.g. "Bayraktar TB2"
-        string   sku;          // short identifier used in redeem codes, e.g. "BAYRAKTAR"
+        string   name;         // e.g. "United Kingdom Unlocked"
+        string   sku;          // short key, e.g. "UK_UNLOCKED"
         Category category;
-        uint256  priceGCH;     // cost in GCH tokens
+        uint256  priceGCH;     // cost in GCH
         uint256  supply;       // 0 = unlimited
-        uint256  sold;         // units sold so far
-        address  modder;       // address(0) = platform-only revenue
-        uint16   modderBps;    // modder revenue share in basis points (e.g. 3000 = 30%)
+        uint256  sold;         // NFTs minted so far
+        address  modder;       // address(0) = platform-only
+        uint16   modderBps;    // modder share in basis points (max 9500)
         bool     active;
-        uint64   expiresAt;    // 0 = never expires (unix timestamp)
+        uint64   expiresAt;    // 0 = never expires
     }
 
     uint256 public listingCount;
     mapping(uint256 => Listing) public listings;
 
-    // Redeem codes
-    mapping(bytes32 => uint256) public codeToListing; // code => listingId
+    // Redeem codes (for game-server integration alongside NFT ownership)
+    mapping(bytes32 => uint256) public codeToListing;
     mapping(bytes32 => bool)    public codeUsed;
 
     // ─── Poll Registry ───────────────────────────────────────────────────────
@@ -61,12 +64,12 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
     struct Poll {
         uint256  id;
         string   question;
-        uint256  costGCH;      // GCH required to vote
+        uint256  costGCH;
         bool     active;
-        uint64   endsAt;       // 0 = no deadline
+        uint64   endsAt;
         uint256  optionCount;
-        mapping(uint256 => Option)  options;  // optionIndex => Option
-        mapping(address => bool)    hasVoted; // one vote per address per poll
+        mapping(uint256 => Option)  options;
+        mapping(address => bool)    hasVoted;
     }
 
     uint256 public pollCount;
@@ -80,6 +83,8 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
     event ListingCreated(uint256 indexed id, string name, string sku, uint256 priceGCH, Category category);
     event ListingUpdated(uint256 indexed id);
     event ListingDeactivated(uint256 indexed id);
+
+    /// @dev Emitted on every NFT mint purchase. redeemCode is a bonus for game servers.
     event ItemPurchased(address indexed buyer, uint256 indexed listingId, bytes32 redeemCode);
     event CodeRedeemed(address indexed user, bytes32 indexed code, uint256 listingId);
 
@@ -92,7 +97,10 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
 
     // ─── Constructor ─────────────────────────────────────────────────────────
 
-    constructor(address _marketplaceWallet) Ownable(msg.sender) {
+    constructor(address _marketplaceWallet)
+        ERC1155("https://gamechanger-market.pages.dev/api/metadata/{id}.json")
+        Ownable(msg.sender)
+    {
         require(_marketplaceWallet != address(0), "Invalid wallet");
         marketplaceWallet = _marketplaceWallet;
     }
@@ -111,7 +119,6 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
         uint256 required = (gchAmount * 1e18) / gchPerAvax;
         require(msg.value >= required, "Insufficient AVAX");
 
-        // Refund any overpayment
         uint256 excess = msg.value - required;
 
         gchBalance[msg.sender] += gchAmount;
@@ -133,15 +140,16 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
     // =========================================================================
 
     /**
-     * @notice Register a new purchasable item.
-     * @param name       Display name.
-     * @param sku        Short uppercase key embedded in the redeem code.
-     * @param category   Category enum value.
+     * @notice Register a new purchasable item. Purchasing it will mint an ERC-1155
+     *         NFT (token ID == listing ID) to the buyer's wallet.
+     * @param name       Display name, e.g. "United Kingdom Unlocked".
+     * @param sku        Short uppercase key, e.g. "UK_UNLOCKED".
+     * @param category   Category enum value (COUNTRY = 4 for nation unlocks).
      * @param priceGCH   Cost in GCH.
-     * @param supply     Max units (0 = unlimited).
-     * @param modder     Address that receives modder revenue share (address(0) = none).
-     * @param modderBps  Modder share in basis points (max 9000 = 90%).
-     * @param expiresAt  Unix timestamp after which listing is inactive (0 = never).
+     * @param supply     Max NFTs that can be minted (0 = unlimited).
+     * @param modder     Modder revenue address (address(0) = none).
+     * @param modderBps  Modder share in basis points (max 9500).
+     * @param expiresAt  Unix timestamp cutoff (0 = never).
      */
     function createListing(
         string  calldata name,
@@ -156,7 +164,7 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
         require(bytes(name).length > 0, "Name required");
         require(bytes(sku).length  > 0, "SKU required");
         require(priceGCH > 0,           "Price must be > 0");
-        require(modderBps <= 9000,       "modderBps > 90%");
+        require(modderBps <= 9500,       "modderBps > 95%");
 
         id = ++listingCount;
         listings[id] = Listing({
@@ -178,7 +186,7 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice Update mutable fields of an existing listing.
-     *         Cannot change name/sku/category after creation.
+     *         Name, SKU, and category are immutable after creation.
      */
     function updateListing(
         uint256 id,
@@ -190,7 +198,7 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
         bool    active
     ) external onlyOwner {
         require(id > 0 && id <= listingCount, "Invalid listing");
-        require(modderBps <= 9000, "modderBps > 90%");
+        require(modderBps <= 9500, "modderBps > 95%");
         Listing storage l = listings[id];
         l.priceGCH  = priceGCH;
         l.supply    = supply;
@@ -208,15 +216,15 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
     }
 
     // =========================================================================
-    // ITEM PURCHASE  (generic – works for every current and future listing)
+    // ITEM PURCHASE — mints ERC-1155 NFT + emits redeem code
     // =========================================================================
 
     /**
      * @notice Purchase any active listing by ID.
-     *         Deducts GCH, mints an on-chain redeem code, and splits
-     *         revenue between platform and modder (if configured).
+     *         Deducts GCH, mints one ERC-1155 token (listingId) to the buyer,
+     *         splits revenue to modder, and emits a redeem code for game servers.
      * @param listingId  The listing to purchase.
-     * @return redeemCode  A unique bytes32 code the buyer can present in-game.
+     * @return redeemCode  Unique bytes32 redeemable in-game.
      */
     function purchaseItem(uint256 listingId)
         external
@@ -225,10 +233,10 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
         returns (bytes32 redeemCode)
     {
         Listing storage l = listings[listingId];
-        require(l.active,                                  "Listing inactive");
-        require(l.expiresAt == 0 || block.timestamp < l.expiresAt, "Listing expired");
-        require(l.supply == 0 || l.sold < l.supply,        "Sold out");
-        require(gchBalance[msg.sender] >= l.priceGCH,      "Insufficient GCH");
+        require(l.active,                                             "Listing inactive");
+        require(l.expiresAt == 0 || block.timestamp < l.expiresAt,   "Listing expired");
+        require(l.supply == 0 || l.sold < l.supply,                   "Sold out");
+        require(gchBalance[msg.sender] >= l.priceGCH,                 "Insufficient GCH");
 
         // Deduct GCH
         gchBalance[msg.sender] -= l.priceGCH;
@@ -238,12 +246,13 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
         if (l.modder != address(0) && l.modderBps > 0) {
             uint256 modderShare = (l.priceGCH * l.modderBps) / 10000;
             modderEarnings[l.modder] += modderShare;
-            // Note: modder earns from the burned GCH pool; the platform
-            //       backend credits actual USD payouts via WDK.
             emit ModderSharePaid(l.modder, listingId, modderShare);
         }
 
-        // Mint unique redeem code
+        // Mint ERC-1155 NFT — token ID == listingId, amount == 1
+        _mint(msg.sender, listingId, 1, "");
+
+        // Emit redeem code for game-server integration
         redeemCode = keccak256(
             abi.encodePacked(msg.sender, listingId, l.sku, block.timestamp, block.prevrandao)
         );
@@ -267,11 +276,7 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
     // =========================================================================
 
     /**
-     * @notice Create a new poll with an arbitrary list of options.
-     * @param question  The vote question.
-     * @param options   Array of option labels (min 2).
-     * @param costGCH   GCH cost per vote (0 = free).
-     * @param endsAt    Unix timestamp deadline (0 = no deadline).
+     * @notice Create a new governance poll with an arbitrary list of options.
      */
     function createPoll(
         string   calldata   question,
@@ -305,24 +310,19 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
     }
 
     // =========================================================================
-    // VOTING  (generic – works for every current and future poll)
+    // VOTING
     // =========================================================================
 
-    /**
-     * @notice Cast a vote on any active poll.
-     * @param pollId       The poll to vote on.
-     * @param optionIndex  Zero-based index of the chosen option.
-     */
     function castVote(uint256 pollId, uint256 optionIndex)
         external
         nonReentrant
         whenNotPaused
     {
         Poll storage p = polls[pollId];
-        require(p.active,                                    "Poll inactive");
+        require(p.active,                                     "Poll inactive");
         require(p.endsAt == 0 || block.timestamp < p.endsAt, "Poll ended");
-        require(optionIndex < p.optionCount,                  "Invalid option");
-        require(!p.hasVoted[msg.sender],                      "Already voted");
+        require(optionIndex < p.optionCount,                   "Invalid option");
+        require(!p.hasVoted[msg.sender],                       "Already voted");
 
         if (p.costGCH > 0) {
             require(gchBalance[msg.sender] >= p.costGCH, "Insufficient GCH");
@@ -339,9 +339,6 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
     // MODDER MANAGEMENT
     // =========================================================================
 
-    /**
-     * @notice Owner credits a modder's GCH balance (e.g. for off-chain contributions).
-     */
     function creditModder(address modder, uint256 gchAmount, string calldata reason)
         external
         onlyOwner
@@ -359,6 +356,14 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
 
     function getBalance(address user) external view returns (uint256) {
         return gchBalance[user];
+    }
+
+    /**
+     * @notice Check if a player owns a specific listing (country/content unlock).
+     *         Uses ERC-1155 balanceOf: true if the player holds >= 1 NFT of that listingId.
+     */
+    function ownsListing(address player, uint256 listingId) external view returns (bool) {
+        return balanceOf(player, listingId) > 0;
     }
 
     function getListing(uint256 id) external view returns (
@@ -380,7 +385,6 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice Returns all active listing IDs in one call.
-     *         Clients iterate this to build the marketplace UI.
      */
     function getActiveListings() external view returns (uint256[] memory ids) {
         uint256 total = listingCount;
@@ -404,9 +408,6 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
         return (o.label, o.votes);
     }
 
-    /**
-     * @notice Returns all option labels and vote counts for a poll.
-     */
     function getPollResults(uint256 pollId)
         external view
         returns (string[] memory labels, uint256[] memory voteCounts)
@@ -452,6 +453,11 @@ contract GameChangerExchange is Ownable, ReentrancyGuard, Pausable {
     function setMarketplaceWallet(address _wallet) external onlyOwner {
         require(_wallet != address(0), "Invalid wallet");
         marketplaceWallet = _wallet;
+    }
+
+    /// @notice Update the ERC-1155 metadata base URI (e.g. point to new IPFS CID).
+    function setBaseURI(string calldata newUri) external onlyOwner {
+        _setURI(newUri);
     }
 
     function pause()   external onlyOwner { _pause(); }

@@ -2,17 +2,12 @@ import { useState, useEffect } from "react";
 import { useWallet } from "../hooks/useWallet";
 import { getContract, getProvider, formatGCH } from "../utils/contract";
 
-// Demo / mock modder stats for the hackathon demo
-const MOCK_SALES = [
-  { skin: "Bayraktar TB2", buyer: "0xA1b2…c3D4", gch: 200, date: "2024-02-25" },
-  { skin: "Bayraktar TB2", buyer: "0xE5f6…a7B8", gch: 200, date: "2024-02-24" },
-  { skin: "F-35 Lightning", buyer: "0xC9d0…e1F2", gch: 500, date: "2024-02-23" },
-];
 
 export default function ModderDashboard() {
   const { address, connected, gchBalance, connect, refreshBalance } = useWallet();
-  const [earnings,    setEarnings]    = useState(0n);
-  const [totalMinted, setTotalMinted] = useState(0n);
+  const [earnings,    setEarnings]    = useState(null);
+  const [totalMinted, setTotalMinted] = useState(null);
+  const [sales,       setSales]       = useState([]);
   const [sellAmt,     setSellAmt]     = useState("500");
   const [selling,     setSelling]     = useState(false);
   const [sellTx,      setSellTx]      = useState(null);
@@ -24,11 +19,30 @@ export default function ModderDashboard() {
       try {
         const provider = getProvider();
         const contract = getContract(provider);
-        const e = await contract.modderEarnings(address);
-        const m = await contract.totalGCHMinted();
+        const [e, m] = await Promise.all([
+          contract.modderEarnings(address),
+          contract.totalGCHMinted(),
+        ]);
         setEarnings(e);
         setTotalMinted(m);
-      } catch { /* ignore */ }
+
+        // Load real sales from ModderSharePaid events for this modder
+        const events = await contract.queryFilter(
+          contract.filters.ModderSharePaid(address),
+          0
+        );
+        const realSales = events.map((ev) => ({
+          skin: ev.args.sku || ev.args.listingId?.toString() || "—",
+          buyer: ev.args.buyer
+            ? ev.args.buyer.slice(0, 6) + "…" + ev.args.buyer.slice(-4)
+            : "—",
+          gch: Number(ev.args.gchAmount),
+          date: new Date(Number(ev.args.timestamp || 0) * 1000)
+            .toISOString().slice(0, 10),
+          block: ev.blockNumber,
+        })).reverse(); // newest first
+        setSales(realSales);
+      } catch { /* contract not yet deployed */ }
     }
     load();
   }, [address]);
@@ -66,9 +80,11 @@ export default function ModderDashboard() {
             <div className="card">
               <p className="text-xs text-gray-400 mb-1">Total Earned</p>
               <p className="text-2xl font-black text-brand-500">
-                {earnings > 0n ? formatGCH(earnings) : "247 GCH"}
+                {earnings === null ? "…" : formatGCH(earnings)}
               </p>
-              <p className="text-xs text-gray-500 mt-1">≈ $0.247 USD</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {earnings === null ? "" : `≈ $${Number(earnings).toLocaleString()} USD`}
+              </p>
             </div>
             <div className="card">
               <p className="text-xs text-gray-400 mb-1">GCH Balance</p>
@@ -78,7 +94,7 @@ export default function ModderDashboard() {
             <div className="card">
               <p className="text-xs text-gray-400 mb-1">Protocol Minted</p>
               <p className="text-2xl font-black text-white">
-                {totalMinted > 0n ? totalMinted.toLocaleString() : "14,200"}
+                {totalMinted === null ? "…" : Number(totalMinted).toLocaleString()}
               </p>
               <p className="text-xs text-gray-500 mt-1">Total GCH minted</p>
             </div>
@@ -119,28 +135,34 @@ export default function ModderDashboard() {
           {/* Recent sales */}
           <div className="card">
             <h2 className="font-bold text-lg mb-4">Recent Sales</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-gray-400 border-b border-gray-800">
-                    <th className="pb-3 font-semibold">Skin</th>
-                    <th className="pb-3 font-semibold">Buyer</th>
-                    <th className="pb-3 font-semibold text-right">GCH</th>
-                    <th className="pb-3 font-semibold text-right">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
-                  {MOCK_SALES.map((s, i) => (
-                    <tr key={i} className="hover:bg-gray-800/50 transition-colors">
-                      <td className="py-3 font-medium">{s.skin}</td>
-                      <td className="py-3 text-gray-400 font-mono text-xs">{s.buyer}</td>
-                      <td className="py-3 text-right text-brand-500 font-bold">+{s.gch}</td>
-                      <td className="py-3 text-right text-gray-400">{s.date}</td>
+            {sales.length === 0 ? (
+              <p className="text-sm text-gray-500 py-4 text-center">
+                {earnings === null ? "Loading…" : "No sales recorded on-chain yet."}
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-gray-400 border-b border-gray-800">
+                      <th className="pb-3 font-semibold">Item</th>
+                      <th className="pb-3 font-semibold">Buyer</th>
+                      <th className="pb-3 font-semibold text-right">GCH</th>
+                      <th className="pb-3 font-semibold text-right">Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {sales.map((s, i) => (
+                      <tr key={i} className="hover:bg-gray-800/50 transition-colors">
+                        <td className="py-3 font-medium">{s.skin}</td>
+                        <td className="py-3 text-gray-400 font-mono text-xs">{s.buyer}</td>
+                        <td className="py-3 text-right text-brand-500 font-bold">+{s.gch}</td>
+                        <td className="py-3 text-right text-gray-400">{s.date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </>
       )}

@@ -16,7 +16,7 @@ export const Category = {
   OTHER:    4,
 };
 
-export const CATEGORY_LABELS = ["Skin", "DLC", "Bundle", "Cosmetic", "Other"];
+export const CATEGORY_LABELS = ["Skin", "DLC", "Bundle", "Cosmetic", "Country Unlock", "Other"];
 
 // ─── ABI ─────────────────────────────────────────────────────────────────────
 export const CONTRACT_ABI = [

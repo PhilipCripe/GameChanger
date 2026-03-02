@@ -7,11 +7,13 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-CHAIN_ID               = "43113"
-NETWORK_NAME           = "Avalanche Fuji Testnet"
-RPC_URL                = "https://api.avax-test.network/ext/bc/C/rpc"
-STRIPE_PUBLISHABLE_KEY = ""   # set in Cloudflare Pages dashboard when ready
-ADMIN_WALLET           = "0xAB0998301e631c5384ea17D2f3C164556bdfe30F"
+CHAIN_ID                = "43113"
+NETWORK_NAME            = "Avalanche Fuji Testnet"
+RPC_URL                 = "https://api.avax-test.network/ext/bc/C/rpc"
+STRIPE_PUBLISHABLE_KEY  = ""   # set in Cloudflare Pages dashboard when ready
+ADMIN_WALLET            = "0xAB0998301e631c5384ea17D2f3C164556bdfe30F"
+VITE_CONTRACT_ADDRESS   = "0x256E962cFA28637BE7b47379DB494128371989dB"
+VITE_CHAIN_ID           = "43113"
 
 # ─── Secrets — set via `wrangler secret put` or Pages dashboard ───────────────
 # ADMIN_TOKEN          (encrypted) — admin panel bearer token
