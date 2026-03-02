@@ -12,8 +12,18 @@ export async function onRequestGet({ request, env }) {
   const userRaw = await kv.get(`user:${session.email}`);
   if (!userRaw) return json({ error: "User not found" }, 404);
 
-  const { email, walletAddress, gchBalance, purchases, createdAt } =
+  const { email, walletAddress, gchBalance, purchases, createdAt, username, bio, socials, role } =
     JSON.parse(userRaw);
 
-  return json({ email, walletAddress: walletAddress || null, gchBalance: gchBalance || 0, purchases: purchases || [], createdAt });
+  return json({
+    email,
+    walletAddress: walletAddress || null,
+    gchBalance:    gchBalance    || 0,
+    purchases:     purchases     || [],
+    createdAt,
+    username:      username      || null,
+    bio:           bio           || "",
+    socials:       socials       || {},
+    role:          role          || "user",
+  });
 }

@@ -7,6 +7,7 @@ import Vote            from "./pages/Vote";
 import ModderDashboard from "./pages/ModderDashboard";
 import Login           from "./pages/Login";
 import Signup          from "./pages/Signup";
+import Profile         from "./pages/Profile";
 
 // Admin
 import AdminLayout    from "./pages/admin/AdminLayout";
@@ -14,6 +15,7 @@ import Dashboard      from "./pages/admin/Dashboard";
 import Listings       from "./pages/admin/Listings";
 import Polls          from "./pages/admin/Polls";
 import Modders        from "./pages/admin/Modders";
+import Users          from "./pages/admin/Users";
 import GameAPI        from "./pages/admin/GameAPI";
 import Uploads        from "./pages/admin/Uploads";
 
@@ -31,6 +33,7 @@ function PublicLayout() {
             <Route path="/modder"  element={<ModderDashboard />} />
             <Route path="/login"   element={<Login />} />
             <Route path="/signup"  element={<Signup />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="*"        element={<Navigate to="/" replace />} />
           </Routes>
         </main>
@@ -59,6 +62,7 @@ export default function App() {
         <Route path="listings"        element={<Listings />} />
         <Route path="polls"           element={<Polls />} />
         <Route path="modders"         element={<Modders />} />
+        <Route path="users"           element={<Users />} />
         <Route path="game-api"        element={<GameAPI />} />
         <Route path="uploads"         element={<Uploads />} />
       </Route>

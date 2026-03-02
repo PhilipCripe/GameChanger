@@ -6,7 +6,7 @@ const ZERO = ethers.ZeroAddress;
 
 const EMPTY_FORM = {
   name: "", sku: "", category: "0", priceGCH: "",
-  supply: "0", modder: "", modderBps: "0", expiresAt: "",
+  supply: "0", modder: "", modderBps: "9500", expiresAt: "",
 };
 
 export default function Listings() {
@@ -154,8 +154,13 @@ export default function Listings() {
               <Field label="Modder Address (optional)">
                 <input value={form.modder} onChange={(e) => field("modder", e.target.value)} className="input font-mono text-xs" placeholder="0x…" />
               </Field>
-              <Field label="Modder Share (basis points, e.g. 3000 = 30%)">
-                <input type="number" min="0" max="9000" value={form.modderBps} onChange={(e) => field("modderBps", e.target.value)} className="input" placeholder="0" />
+              <Field label="Modder Share (basis points — 9500 = 95% modder / 5% platform)">
+                <input type="number" min="0" max="9500" value={form.modderBps} onChange={(e) => field("modderBps", e.target.value)} className="input" placeholder="9500" />
+                {form.modderBps > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Modder receives {(form.modderBps / 100).toFixed(1)}% · Platform receives {(100 - form.modderBps / 100).toFixed(1)}%
+                  </p>
+                )}
               </Field>
             </div>
             <div className="flex gap-3 mt-5">

@@ -78,12 +78,20 @@ export default function Navbar() {
                 </svg>
                 {(user.gchBalance || 0).toLocaleString()} GCH
               </span>
-              <span
-                className="w-8 h-8 rounded-full bg-avax-red flex items-center justify-center text-white text-xs font-black cursor-default"
+              <Link
+                to="/profile"
+                className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
                 title={user.email}
               >
-                {initials(user.email)}
-              </span>
+                <span className="w-8 h-8 rounded-full bg-avax-red flex items-center justify-center text-white text-xs font-black">
+                  {user.username ? user.username[0].toUpperCase() : initials(user.email)}
+                </span>
+                {user.username && (
+                  <span className="hidden sm:inline text-xs font-semibold text-gray-300">
+                    @{user.username}
+                  </span>
+                )}
+              </Link>
               <button
                 onClick={logout}
                 className="text-xs px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
