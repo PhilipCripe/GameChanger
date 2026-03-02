@@ -93,8 +93,8 @@ export default function Modders() {
                     <p className="text-xl font-black text-brand-500">{lookupResult.earnings.toLocaleString()}</p>
                   </div>
                   <div className="col-span-2 bg-gray-800 rounded-xl p-4">
-                    <p className="text-xs text-gray-400 mb-1">Estimated USD (at 1000 GCH = $1)</p>
-                    <p className="text-lg font-bold">${(lookupResult.earnings / 1000).toFixed(3)}</p>
+                    <p className="text-xs text-gray-400 mb-1">Estimated USD (at 1 GCH = $1)</p>
+                    <p className="text-lg font-bold">${lookupResult.earnings.toLocaleString()}</p>
                   </div>
                 </div>
               )}
@@ -140,7 +140,7 @@ export default function Modders() {
               <div>
                 <label className="text-xs text-gray-400 font-semibold block mb-1.5">Estimated USD</label>
                 <div className="input bg-gray-800/50 text-gray-400 cursor-default">
-                  ${creditAmt ? (Number(creditAmt) / 1000).toFixed(3) : "0.000"}
+                  ${creditAmt ? Number(creditAmt).toLocaleString() : "0"}
                 </div>
               </div>
             </div>

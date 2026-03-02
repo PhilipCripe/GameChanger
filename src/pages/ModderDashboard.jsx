@@ -44,7 +44,7 @@ export default function ModderDashboard() {
   }
 
   const gchNum      = Math.max(0, parseInt(sellAmt) || 0);
-  const usdEstimate = (gchNum * 0.001).toFixed(2); // 1 GCH ≈ $0.001
+  const usdEstimate = gchNum.toLocaleString(); // 1 GCH = $1 USD
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
@@ -104,7 +104,7 @@ export default function ModderDashboard() {
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2 mb-4">
-              Rate: 1000 GCH = $1 USD · Payout via Tether WDK to your preferred wallet
+              Rate: 1 GCH = $1 USD · Payout via Tether WDK to your preferred wallet
             </p>
             <button onClick={handleSell} disabled={selling || gchNum <= 0} className="btn-primary">
               {selling ? "Processing payout…" : `Sell ${gchNum.toLocaleString()} GCH → $${usdEstimate}`}
